@@ -1,4 +1,4 @@
-Python REST-API Development with Flask
+Python REST-API Development with Flask for sending Grafana Alerts to Telegram channels.
 =================================
 
 Requirements
@@ -16,8 +16,8 @@ Installation
 
 The commands below set everything up to run the examples:
 
-    $ git clone https://github.com/mamirpanah/flask-restapi.git
-    $ cd flask-restapi
+    $ git clone https://github.com/mamirpanah/telegram-alerts.git
+    $ cd telegram-alerts
     $ python3 -m venv venv
     $ . venv/bin/activate
     (venv) pip install -r requirements.txt
@@ -29,7 +29,7 @@ finished
 Installation with docker
 ------------
 
-    $ docker build -t python_flask:1 .
+    $ docker build -t restapi-alerts:1 .
     $ docker run --rm -it -p 8080:5000 python_flask:1 flask run -h 0.0.0.0 -p 5000
 
 Installation with docker-compose
@@ -65,11 +65,11 @@ Using factory method to import flask web server as an object into another python
 
 How to customize python flask web server as a restful-api:
 ------------
-Creating a REST API for GET request on http://localhost:5000/users
+Creating a REST API for POST request on http://127.0.0.1:8686/api/v1/telegramalerts
 
 All the things that you should change is in restapi/resource :
-1. git clone https://github.com/mamirpanah/flask-restapi.git
-2. cd flask-restapi/restapi/resource/apiv1
+1. git clone https://github.com/mamirpanah/telegram-alerts.git
+2. cd telegram-alerts/restapi/resource/apiv1
 3. vim __init__.py
 4. vim user.py
 
@@ -82,13 +82,13 @@ from restapi.resource.apiv1.user import UserResource
 
 api.add_resource(
 	UserResource,
-	"/users",
+	"/telegramalerts",
 	methods=["GET", "POST"],
-	endpoint="users"  # It will be shown in response as key name.
+	endpoint="telegramalerts"  # It will be shown in response as key name.
 )
 ```
 
-Everytime you want to add or change an endpoint like "/users" you should add_resource() by calling api object with desired arguments, for example:
+Everytime you want to add or change an endpoint like "/telegram-alerts" you should add_resource() by calling api object with desired arguments, for example:
 * The first argument is the class that contains get, post or put methods definitions, that is present in user.py file
 * The second argument is the endpoint url itself
 * The 3rd argument shows the methods that api endpoint accepts for incoming requests
@@ -99,46 +99,47 @@ user.py
 ```
 from flask_restful import Resource
 from restapi.util import jsonify
+import telebot
+import os
+from flask import request
+
+bot = telebot.TeleBot(os.environ["TELEGRAM_TOKEN"], parse_mode=None)
 
 class UserResource(Resource):
 
 	def get(self, user_id=None):
 		"""
-		GET /users --> Get list of users.
-		GET /users/<user_id> --> Get the user.
-		"""
-		if user_id is None:
-			return jsonify({
-			"users": "test without user_id"
-			})
-		else:
-			return jsonify({
-			"users": "test with user_id"
-			})
-
-	def post(self):
-		"""
-		POST /users --> Create new user.
-		POST /users/<user_id> --> Not allowed.
+		GET /telegramalerts --> Get list of users.
 		"""
 		pass
 
+	def post(self):
+		"""
+		POST /telegramalerts --> Send new alerts.
+		"""
+		data = request.get_json(force=True)
+		chat_id = data.get("chatID",None)
+		message = data.get("msg",None)
+		bot.send_message(chat_id=chat_id, text=message)
+		return jsonify({
+			"quote": message
+			})
+		
+
 	def patch(self, user_id):
 		"""
-		PATCH /users --> Not allowed.
-		PATCH /users/<user_id> --> Update the user.
+		PATCH /telegramalerts --> Not allowed.
 		"""
 		pass
 
 	def delete(self, user_id):
 		"""
-		DELETE /users --> Not allowed.
-		DELETE /users/<user_id> --> Delete the user.
+		DELETE /telegramalerts --> Not allowed.
 		"""
 		pass
 ```
 
-In step 3 we called UserResource as the class for GET requests, now with modifying get definition you can call other functions to do whatever you want and finally take back a response, it means you can import other packages in user.py file and use them in "get" method definition by calling
+In step 3 we called UserResource as the class for POST requests, now with modifying post definition you can call other functions to do whatever you want and finally take back a response, it means you can import other packages in user.py file and use them in "post" method definition by calling it. For example, we have imported `import telebot` and created an instance of the bot `bot = telebot.TeleBot(os.environ["TELEGRAM_TOKEN"], parse_mode=None)` and for every post requests coming to our api the function `bot.send_message(chat_id=chat_id, text=message)` is called with "chat_id" that is the ID of Telegram channel that you want to send alerts, and the "message" is the body content of the alert.
 
 Finally to test the created api:
 
@@ -149,3 +150,13 @@ Finally to test the created api:
     "message": "OK",
     "code": 100
 }
+
+How to use telegram-alerts quickly:
+------------
+
+1. Create a telegram bot with @BotFather and get the access token.
+2. Replace the access token of .env file.
+3. Create a Telegram channel, and add the bot you just created and make it admin of the channel.
+4. find the chat ID of the channel by forwarding a message to @chatIDrobot
+5. To install this api, go to your monitoring server and `git clone https://github.com/mamirpanah/telegram-alerts.git` then `cd telegram-alerts/` and finnaly `docker-compose up -d --build`
+6. Finnaly to send an alert as a test: `curl -H "Content-Type: application/json" -X POST http://127.0.0.1:8686/api/v1/telegramalerts -d "{\"msg\": \"testing the api\", \"chatID\": \"<your_chat_id>"}"`
