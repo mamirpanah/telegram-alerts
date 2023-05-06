@@ -21,6 +21,7 @@ The commands below set everything up to run the examples:
     $ python3 -m venv venv
     $ . venv/bin/activate
     (venv) pip install -r requirements.txt
+    $ export TELEGRAM_TOKEN="<your_token_here>"
     $ flask run -h 0.0.0.0 -p 5000
 
 finished
@@ -30,11 +31,11 @@ Installation with docker
 ------------
 
     $ docker build -t restapi-alerts:1 .
-    $ docker run --rm -it -p 8080:5000 python_flask:1 flask run -h 0.0.0.0 -p 5000
+    $ docker run --rm -it -p 8080:5000 -e TELEGRAM_TOKEN="<your_token_here>" python_flask:1 flask run -h 0.0.0.0 -p 5000
 
 Installation with docker-compose
 ------------
-
+    $ echo 'TELEGRAM_TOKEN="<your_token_here>"' > .env
     $ docker-compose up -d --build
 
 note: You can replace "command" of docker-compose.yml with following commands to run flask web server:
@@ -158,5 +159,5 @@ How to use telegram-alerts quickly:
 2. Replace the access token of .env file.
 3. Create a Telegram channel, and add the bot you just created and make it admin of the channel.
 4. find the chat ID of the channel by forwarding a message to @chatIDrobot
-5. To install this api, go to your monitoring server and `git clone https://github.com/mamirpanah/telegram-alerts.git` then `cd telegram-alerts/` and finnaly `docker-compose up -d --build`
+5. To install this api, go to your monitoring server: 1-`git clone https://github.com/mamirpanah/telegram-alerts.git`  2-`cd telegram-alerts/` 3-`echo 'TELEGRAM_TOKEN="<your_token_here>"' > .env` and finnaly 4-`docker-compose up -d --build`
 6. Finnaly to send an alert as a test: `curl -H "Content-Type: application/json" -X POST http://127.0.0.1:8686/api/v1/telegramalerts -d "{\"msg\": \"testing the api\", \"chatID\": \"<your_chat_id>"}"`
